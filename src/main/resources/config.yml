@@ -1,0 +1,2 @@
+# Should save a file with ImGui window settings?
+saveIniFile: false
