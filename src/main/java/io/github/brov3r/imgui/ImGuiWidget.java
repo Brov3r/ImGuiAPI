@@ -96,5 +96,5 @@ public abstract class ImGuiWidget {
      * This is an abstract method that must be implemented by subclasses to define
      * the specific rendering logic of the widget.
      */
-    abstract void render();
+    public abstract void render();
 }
