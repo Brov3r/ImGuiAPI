@@ -2,6 +2,9 @@ package io.github.brov3r.imgui;
 
 import imgui.ImGui;
 import imgui.ImVec2;
+import zombie.core.Core;
+import zombie.ui.UIFont;
+import zombie.ui.UITextBox2;
 
 /**
  * Represents a generic widget in the ImGui framework.
@@ -10,6 +13,11 @@ import imgui.ImVec2;
  * Subclasses must implement the {@link #render()} method to define the widget's specific rendering behavior.
  */
 public abstract class ImGuiWidget {
+    /**
+     * Default InputText UI element for blocking game input
+     */
+    protected UITextBox2 blockBox;
+
     /**
      * Indicates whether the widget is visible on the screen.
      * If {@code true}, the widget is visible; otherwise, it is hidden.
@@ -21,6 +29,19 @@ public abstract class ImGuiWidget {
      * This is updated based on the current mouse position relative to the widget's position and size.
      */
     protected boolean hover = false;
+
+    /**
+     * Getting the default InputText UI Element to block game input
+     *
+     * @return the default InputText UI element
+     */
+    protected UITextBox2 getBlockBox() {
+        if (blockBox == null) {
+            blockBox = new UITextBox2(UIFont.Code, 0, 0, 0, 0, "", false);
+            blockBox.setEditable(true);
+        }
+        return blockBox;
+    }
 
     /**
      * Checks if the widget is currently being hovered over by the mouse cursor.
@@ -89,6 +110,13 @@ public abstract class ImGuiWidget {
      * It is called before rendering each frame.
      */
     public void update() {
+        if (!ImGui.isAnyItemActive() && Core.CurrentTextEntryBox == getBlockBox()) {
+            getBlockBox().unfocus();
+        }
+
+        if (ImGui.isAnyItemActive() && Core.CurrentTextEntryBox != getBlockBox()) {
+            getBlockBox().focus();
+        }
     }
 
     /**

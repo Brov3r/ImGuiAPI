@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'io.github.brov3r.imgui'
-version = '1.0'
+version = '1.1'
 
 /**
  * Path to the compiled Jar file
@@ -77,4 +77,70 @@ shadowJar {
                 'Implementation-Version': version,
         )
     }
+}
+
+/**
+ * Building a release Jars archive with documentation and sources
+ */
+tasks.register('releaseBuildJar') {
+    dependsOn sourceJar
+    finalizedBy shadowJar
+}
+
+/**
+ * Download sources
+ */
+tasks.register('downloadSources') {
+    inputs.files configurations.runtimeClasspath
+    outputs.dir "${buildDir}/download"
+
+    def componentIds = configurations.runtimeClasspath.incoming.resolutionResult.allDependencies.collect { it.selected.id }
+
+    ArtifactResolutionResult result = dependencies.createArtifactResolutionQuery()
+            .forComponents(componentIds)
+            .withArtifacts(JvmLibrary, SourcesArtifact)
+            .execute()
+
+    def sourceArtifacts = []
+
+    result.resolvedComponents.each { ComponentArtifactsResult component ->
+        Set<ArtifactResult> sources = component.getArtifacts(SourcesArtifact)
+        println "Found ${sources.size()} sources for ${component.id}"
+        sources.each { ArtifactResult ar ->
+            if (ar instanceof ResolvedArtifactResult) {
+                sourceArtifacts << ar.file
+            }
+        }
+    }
+
+    copy {
+        from sourceArtifacts
+        into "${buildDir}/download"
+    }
+}
+
+/**
+ * Packaging source code in a Jar archive
+ */
+tasks.register('sourceJar', Jar) {
+    dependsOn downloadSources
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName.set("${rootProject.name}")
+    archiveClassifier.set('sources')
+
+    // Include all sources from your project
+    from(sourceSets.main.allSource)
+
+    // Extract contents of JAR files and include in the source JAR
+    def sourceJarFiles = file("${buildDir}/download").listFiles().findAll { it.name.endsWith('.jar') }
+
+    if (sourceJarFiles) {
+        sourceJarFiles.each { jarFile ->
+            from(zipTree(jarFile))
+        }
+    } else {
+        logger.warn "No source JAR files found in ${buildDir}/download"
+    }
+
+    destinationDirectory.set(file(buildPath))
 }
